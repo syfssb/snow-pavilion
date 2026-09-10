@@ -37,7 +37,7 @@ at 60fps from a 475-byte HTML file.
 ## Run it
 
 ```bash
-git clone https://github.com/YOUR_NAME/snow-pavilion
+git clone https://github.com/syfssb/snow-pavilion
 cd snow-pavilion
 python3 -m http.server 8765
 # open http://localhost:8765/

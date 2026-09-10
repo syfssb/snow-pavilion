@@ -36,7 +36,7 @@
 ## 跑起来
 
 ```bash
-git clone https://github.com/YOUR_NAME/snow-pavilion
+git clone https://github.com/syfssb/snow-pavilion
 cd snow-pavilion
 python3 -m http.server 8765
 # 打开 http://localhost:8765/
