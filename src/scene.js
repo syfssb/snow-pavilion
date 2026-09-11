@@ -26,6 +26,8 @@
  *   只为让 buildScene 单独跑得起来）。这些值在第一帧之前一定会被
  *   createAtmosphere 的构造期 applyState() 覆盖一次。
  */
+import { makeBareTree, makeSnowMound } from './tree.js';
+
 export function buildScene(THREE, renderer, init) {
 
   const INIT = init || {};
@@ -797,6 +799,7 @@ export function buildScene(THREE, renderer, init) {
     scene.add(iceShards);
   }
 
+  let trees;          // 枯树组（在下面的块里赋值，handles 要用，所以提到函数作用域）
   /* 系船桩：几根歪斜的木桩，桩顶一顶小雪帽 */
   const posts = new THREE.Group();
   {
@@ -814,6 +817,54 @@ export function buildScene(THREE, renderer, init) {
     const cm = new THREE.Mesh(mergeParts(B), materials.snow);
     cm.castShadow = true; cm.receiveShadow = true; posts.add(cm);
     scene.add(posts);
+
+  /* 枯树 —— 递归分枝生成，见 tree.js
+     放在这里是为了回答「不规则的东西怎么办」：树没有闭式公式，但有递归规则。
+     冬天的枯树尤其适合程序化——没有叶子，就不需要 alpha 贴图和叶片卡片，
+     而枝干本身恰恰是纯几何。 */
+  trees = new THREE.Group();
+  trees.name = 'BareTrees';
+  {
+    const barkMat = new THREE.MeshStandardMaterial({
+      vertexColors: true,        // 积雪烤在顶点色里，不需要第二套材质
+      roughness: 0.92,
+      metalness: 0.0,
+    });
+    const moundMat = materials.snow || materials.ice;
+
+    // 三棵，各自的种子/体量不同；位置贴着中景，从「湖心亭一点」机位看正好补左侧近景
+    // 位置是按「湖心亭一点」机位的视锥算的：相机 (8.5, 1.78, 41)、目标 (2.2, 2.64, 0)、
+    // fov 34 竖直 => 水平约 57°。在深度 z 处，画面横向范围是
+    //     中心 x = 8.5 - 6.3·(41-z)/41.4，半宽 = dist·tan(28.5°)
+    // 三棵都落在范围内且不贴边，免得像上一版那样从角上戳进来被裁掉。
+    // 面数：depth 每减 1 约砍掉一半，所以只有主树给 7，配角降级。
+    const PLAN = [
+      { x:  -8.5, z: 14.0, seed: 7,  h: 4.2, r: 0.145, depth: 6, rotY: 0.4,  scale: 1.0  },
+      { x:  12.5, z: 19.0, seed: 23, h: 3.3, r: 0.110, depth: 6, rotY: 2.1,  scale: 0.94 },
+      { x: -15.0, z:  6.0, seed: 41, h: 3.7, r: 0.125, depth: 5, rotY: -1.2, scale: 0.90 },
+    ];
+    for (const t of PLAN) {
+      const geo = makeBareTree(THREE, {
+        seed: t.seed, height: t.h, radius: t.r, depth: t.depth,
+        spread: 0.58, lenRatio: 0.775, radRatio: 0.685,
+        phototropism: 0.17, gravity: 0.24, gnarl: 0.32,
+      });
+      const m = new THREE.Mesh(geo, barkMat);
+      m.position.set(t.x, -0.04, t.z);
+      m.rotation.y = t.rotY;
+      m.scale.setScalar(t.scale);
+      m.castShadow = true; m.receiveShadow = true;
+      trees.add(m);
+
+      const mound = new THREE.Mesh(makeSnowMound(THREE, t.r * 5.2, 0.14, 14, t.seed), moundMat);
+      mound.rotation.x = -Math.PI / 2;
+      mound.position.set(t.x, 0.005, t.z);
+      mound.receiveShadow = true;
+      trees.add(mound);
+    }
+    scene.add(trees);
+  }
+
   }
 
   /* 长堤一痕 */
@@ -1014,6 +1065,7 @@ export function buildScene(THREE, renderer, init) {
       reeds,
       iceShards,
       posts,
+      trees,
       dike,
       boat
     },

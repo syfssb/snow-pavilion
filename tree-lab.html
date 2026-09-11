@@ -1,0 +1,49 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>tree lab</title>
+<style>html,body{margin:0;height:100%;background:#eef2f5;overflow:hidden}
+canvas{display:block}#i{position:fixed;left:12px;top:12px;font:12px/1.6 ui-monospace,monospace;color:#333;white-space:pre}</style>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/addons/"}}</script>
+</head><body><div id="i"></div>
+<script type="module">
+import * as THREE from 'three';
+import { makeBareTree } from './src/tree.js';
+
+const P = Object.fromEntries(new URLSearchParams(location.search));
+const num = (k,d)=> P[k]!==undefined ? parseFloat(P[k]) : d;
+
+const r = new THREE.WebGLRenderer({antialias:true});
+r.setPixelRatio(1); r.setSize(innerWidth,innerHeight);
+r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure=0.95;
+document.body.appendChild(r.domElement);
+const sc = new THREE.Scene(); sc.background=new THREE.Color(0xeef2f5);
+const cam = new THREE.PerspectiveCamera(40, innerWidth/innerHeight, 0.1, 200);
+sc.add(new THREE.HemisphereLight(0xffffff,0xa8b4be,1.1));
+const d = new THREE.DirectionalLight(0xffffff,1.0); d.position.set(-6,9,5); sc.add(d);
+const ground = new THREE.Mesh(new THREE.CircleGeometry(30,48),
+  new THREE.MeshStandardMaterial({color:0xe6ecf0,roughness:1}));
+ground.rotation.x=-Math.PI/2; sc.add(ground);
+
+const opts = {
+  seed: num('seed',7), height: num('h',4.6), radius: num('r',0.155),
+  depth: num('depth',7), splitMin: num('smin',2), splitMax: num('smax',3),
+  spread: num('spread',0.58), lenRatio: num('len',0.775), radRatio: num('rad',0.685),
+  phototropism: num('photo',0.17), gravity: num('grav',0.24), gnarl: num('gnarl',0.32),
+  segPerBranch: num('seg',4), radialSeg: num('rseg',5),
+};
+const g = makeBareTree(THREE, opts);
+const mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.92}));
+sc.add(mesh);
+
+const tris = g.index.count/3;
+document.getElementById('i').textContent =
+  Object.entries(opts).map(([k,v])=>`${k.padEnd(14)}${v}`).join('\n') + `\n\n三角面        ${tris}`;
+
+let a = 0.6;
+addEventListener('pointermove', e=>{ if(e.buttons) a += e.movementX*0.01; });
+const box = new THREE.Box3().setFromObject(mesh); const c = box.getCenter(new THREE.Vector3());
+const rad = box.getSize(new THREE.Vector3()).length();
+function tick(){ requestAnimationFrame(tick);
+  cam.position.set(c.x+Math.sin(a)*rad*1.1, c.y+rad*0.12, c.z+Math.cos(a)*rad*1.1);
+  cam.lookAt(c); r.render(sc,cam); }
+tick();
+</script></body></html>

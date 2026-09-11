@@ -111,7 +111,9 @@ src/scene.js        geometry & materials, procedural textures
 src/atmosphere.js   3 time presets, 22 parameters cross-faded over 1.5s
 src/cameras.js      preset framing, quaternion slerp, free-walk controls
 src/ui.js           all DOM + CSS, self-injected, zero framework
+src/tree.js         recursive branching — bare winter trees
 src/main.js         assembly + post-processing chain + render loop
+tree-lab.html       standalone tuning harness for the tree generator
 vendor/             three.js r180, vendored (MIT)
 tex/                4 PBR sets from Poly Haven (CC0)
 ARCHITECTURE.md     the full module contract — camera framing maths,
@@ -127,19 +129,57 @@ procedural `CubeTexture` sky environment · `FogExp2` · `PCFSoftShadowMap` ·
 **Not used**: any modeling tool, `GLTFLoader`, planar reflection, baked GI, React, a
 bundler, a CDN.
 
-## Where procedural generation stops
+## When there is no equation: the trees
+
+The pavilion is regular, so a closed-form surface covers it. A bare winter tree is the
+obvious counter-example — and it is still generated in code, because **"no equation" and
+"no rule" are different things**.
+
+A tree's rule is recursive, not algebraic: a branch splits into shorter, thinner branches,
+each of which splits again. That alone gives you a fractal toy. What makes it read as a
+*tree* is three biases stacked on the recursion:
+
+```
+phototropism  branches curve toward the sky      (stronger as they thin)
+gravity       tips droop                          (stronger as they thin — fights #1)
+gnarl         every segment wanders a little      (breaks the symmetry)
+```
+
+Remove any one and you get a Christmas tree, a river delta, or a blood vessel — not a tree.
+This is the same family of technique as SpeedTree, and the same reason L-systems,
+Voronoi fracture, and wave-function collapse can generate rocks, cracks and cities.
+
+Winter helps: a bare tree needs no leaf cards, no alpha textures, no wind simulation.
+The branches *are* the geometry.
+
+<img src="docs/trees_dawn.jpg" width="49%"> <img src="docs/trees_night.jpg" width="49%">
+
+<sub>Recursive bare trees at dawn and at night — 14,936 triangles each, no leaf cards, no wind sim.</sub>
+
+`tree-lab.html` is a standalone harness for tuning the generator — every parameter is a
+query string (`tree-lab.html?depth=7&gravity=0.3&gnarl=0.4`).
+
+One practical note: recursive geometry is exponentially back-loaded — the finest twigs are
+most of the triangles. Naive uniform tessellation produced **124,840 triangles for one
+tree**, twice the rest of the scene. Adapting the cross-section from 6 sides at the trunk
+down to 3 at the tips cut it to **14,936** with no visible difference. Nobody can tell how
+many sides an 8mm twig has.
+
+## Where procedural generation actually stops
 
 This repo is a demonstration of one rule:
 
-> **If it has an equation, write code. If it only has a look, you need an artist.**
+> **If it has an equation, write code.**
+> **If it has a rule, write an algorithm.**
+> **If it only has a look, you need an artist.**
 
 The pavilion is modular timber architecture built to a dimensional standard — it has an
 equation. So do snow drifts, ripples, reeds, and a lathe-turned hull.
 
-What is deliberately missing marks the other side of that line: the 斗拱 (interlocking
-bracket sets), carved balustrades, painted beams, roof-ridge figures — and 「舟中人两三粒」,
-*two or three grains of people in the boat*. A human figure has no equation. Neither
-does a reed with a seed head.
+The pavilion has an equation. The trees, snow drifts and ripples have rules. What is
+deliberately missing marks the far side of the line: the 斗拱 (interlocking bracket sets),
+carved balustrades, painted beams, roof-ridge figures — and 「舟中人两三粒」, *two or three
+grains of people in the boat*. A human figure has neither an equation nor a rule.
 
 Known limits, honestly: the boat casts no contact shadow (the directional light's shadow
 frustum is ±22m and the boat preset sits at its edge); ≥45fps has never been verified on
